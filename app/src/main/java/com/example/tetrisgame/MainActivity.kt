@@ -1,6 +1,7 @@
 package com.example.tetrisgame
 
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ActivityInfo
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -9,10 +10,6 @@ import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.coroutines.*
 
 class MainActivity : AppCompatActivity() {
-
-    //todo
-    // milyen iranyba erkezzenek a darabok
-    // a next is talaljon az irannyal
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,14 +55,22 @@ class MainActivity : AppCompatActivity() {
             setBest()
 
             // gamplay infinite
-            while (true) {
-                if (Falling.willLanding(1)) {
+            while (true) {                if (Falling.willLanding(1)) {
                     // check is need to clear rows
                     Level.checkRows()
                     // if landed piece cant entered
                     if (Level.isGameOver()) {
-                        resetBest()
+                        val finalScore = Level.score
+                        val isNewRecord = resetBest()
                         Level.reset()
+                        
+                        // Ir a la pantalla de Game Over
+                        val intent = Intent(this@MainActivity, GameOverActivity::class.java)
+                        intent.putExtra("FINAL_SCORE", finalScore)
+                        intent.putExtra("IS_NEW_RECORD", isNewRecord)
+                        startActivity(intent)
+                        finish()
+                        return@launch
                     }
                     Tetromino.newPiece()
                     Level.insertNewPosition()
@@ -82,14 +87,23 @@ class MainActivity : AppCompatActivity() {
     private fun setBest() {
         val sharedPreference = getSharedPreferences("HIGH_SCORE", Context.MODE_PRIVATE)
         Level.best = sharedPreference.getInt("high_score", 0)
-    }
-    private fun resetBest(){
+    }    private fun resetBest(): Boolean {
         val sharedPreference = getSharedPreferences("HIGH_SCORE", Context.MODE_PRIVATE)
         if (Level.score > sharedPreference.getInt("high_score", 0)) {
             var editor = sharedPreference.edit()
             editor.putInt("high_score", Level.score)
             editor.commit()
             Level.best = sharedPreference.getInt("high_score", 0)
+            return true // Es un nuevo récord
         }
+        return false // No es un nuevo récord
+    }
+
+    override fun onBackPressed() {
+        // Regresar al menú principal cuando se presiona el botón atrás
+        val intent = Intent(this, MenuActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+        startActivity(intent)
+        finish()
     }
 }
